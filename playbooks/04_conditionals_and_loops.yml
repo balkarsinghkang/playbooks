@@ -1,0 +1,81 @@
+---
+- name: Conditionals and Loops Playbook
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  vars:
+    test_condition: true
+    test_list:
+      - apple
+      - banana
+      - cherry
+    test_dict:
+      fruit1: apple
+      fruit2: banana
+      fruit3: cherry
+    test_range: 3
+  
+  tasks:
+    - name: Create a temporary directory
+      file:
+        path: /tmp/ansible_test_dir
+        state: directory
+        mode: '0755'
+    
+    # Conditional tasks
+    - name: Task that runs when condition is true
+      copy:
+        content: "This task ran because the condition was true."
+        dest: /tmp/ansible_test_dir/condition_true.txt
+      when: test_condition
+    
+    - name: Task that runs when condition is false
+      copy:
+        content: "This task ran because the condition was false."
+        dest: /tmp/ansible_test_dir/condition_false.txt
+      when: not test_condition
+    
+    # Loop with list
+    - name: Loop over a list
+      copy:
+        content: "Item: {{ item }}"
+        dest: "/tmp/ansible_test_dir/list_{{ item }}.txt"
+      loop: "{{ test_list }}"
+    
+    # Loop with dictionary
+    - name: Loop over a dictionary
+      copy:
+        content: "Key: {{ item.key }}, Value: {{ item.value }}"
+        dest: "/tmp/ansible_test_dir/dict_{{ item.key }}.txt"
+      loop: "{{ test_dict | dict2items }}"
+    
+    # Loop with range
+    - name: Loop over a range
+      copy:
+        content: "Index: {{ item }}"
+        dest: "/tmp/ansible_test_dir/range_{{ item }}.txt"
+      loop: "{{ range(0, test_range) | list }}"
+    
+    # Nested loops
+    - name: Nested loops with outer loop
+      include_tasks: tasks/nested_loop.yml
+      loop: "{{ test_list }}"
+      loop_control:
+        loop_var: outer_item
+    
+    # List all files
+    - name: List all files
+      command: ls -la /tmp/ansible_test_dir
+      register: file_list
+      changed_when: false
+    
+    - name: Display file list
+      debug:
+        var: file_list.stdout_lines
+    
+    # Clean up
+    - name: Clean up
+      file:
+        path: /tmp/ansible_test_dir
+        state: absent

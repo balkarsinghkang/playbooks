@@ -1,0 +1,31 @@
+---
+- name: Test Playbook
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  tasks:
+    - name: Create a temporary directory
+      file:
+        path: /tmp/ansible_test_dir
+        state: directory
+        mode: '0755'
+    
+    - name: Create a test file
+      copy:
+        content: "This is a test file."
+        dest: /tmp/ansible_test_dir/test.txt
+    
+    - name: Read the test file
+      command: cat /tmp/ansible_test_dir/test.txt
+      register: file_content
+      changed_when: false
+    
+    - name: Display the file content
+      debug:
+        var: file_content.stdout
+    
+    - name: Clean up
+      file:
+        path: /tmp/ansible_test_dir
+        state: absent

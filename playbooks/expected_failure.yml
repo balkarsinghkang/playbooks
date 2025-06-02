@@ -1,0 +1,9 @@
+---
+- name: Expected failure playbook
+  hosts: all
+  gather_facts: yes
+  tasks:
+    - name: This task will always fail
+      command: /bin/false
+      register: command_result
+      failed_when: true

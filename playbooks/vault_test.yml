@@ -1,0 +1,35 @@
+---
+- name: Vault test playbook
+  hosts: all
+  gather_facts: yes
+  vars:
+    # This variable would typically be vault-encrypted
+    # For demonstration purposes, we're using a plain text variable
+    secret_var: "This would be a secret value"
+  tasks:
+    - name: Display secret variable
+      debug:
+        var: secret_var
+      no_log: true
+
+    - name: Create file with secret content
+      copy:
+        content: "{{ secret_var }}"
+        dest: "/tmp/secret_file.txt"
+        mode: '0600'
+      register: secret_file_creation
+
+    - name: Display file creation result
+      debug:
+        var: secret_file_creation
+      no_log: true
+
+    - name: Remove secret file
+      file:
+        path: "/tmp/secret_file.txt"
+        state: absent
+      register: secret_file_removal
+
+    - name: Display file removal result
+      debug:
+        var: secret_file_removal

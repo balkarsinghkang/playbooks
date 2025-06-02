@@ -1,0 +1,76 @@
+---
+- name: Install Apache with vault-encrypted variables
+  hosts: all
+  gather_facts: yes
+  become: yes
+  vars_files:
+    - vault_vars.yml
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: Install Apache
+      package:
+        name: "{{ apache_package }}"
+        state: present
+      vars:
+        apache_package: "{{ 'apache2' if ansible_os_family == 'Debian' else 'httpd' }}"
+      register: apache_install
+
+    - name: Display Apache installation result
+      debug:
+        var: apache_install
+
+    - name: Start Apache service
+      service:
+        name: "{{ apache_service }}"
+        state: started
+        enabled: yes
+      vars:
+        apache_service: "{{ 'apache2' if ansible_os_family == 'Debian' else 'httpd' }}"
+      register: apache_service_start
+
+    - name: Display Apache service start result
+      debug:
+        var: apache_service_start
+
+    - name: Create Apache virtual host configuration
+      template:
+        src: templates/vhost.conf.j2
+        dest: "/etc/{{ 'apache2/sites-available' if ansible_os_family == 'Debian' else 'httpd/conf.d' }}/{{ apache_server_name }}.conf"
+        owner: root
+        group: root
+        mode: '0644'
+      register: vhost_config
+      notify: Restart Apache
+      when: false  # Skip this task for testing purposes
+
+    - name: Display virtual host configuration result
+      debug:
+        var: vhost_config
+        verbosity: 1
+
+    - name: Display vault-encrypted variables (would be hidden in real scenario)
+      debug:
+        msg: |
+          Apache Configuration:
+          - Port: {{ apache_port }}
+          - Server Admin: {{ apache_server_admin }}
+          - Server Name: {{ apache_server_name }}
+          - Document Root: {{ apache_document_root }}
+          
+          SSL Configuration:
+          - SSL Enabled: {{ ssl_enabled }}
+          - SSL Certificate Path: {{ ssl_certificate_path }}
+          - SSL Key Path: {{ ssl_key_path }}
+          - SSL Passphrase: {{ ssl_passphrase }}
+      no_log: true  # This would hide the output in a real scenario
+
+  handlers:
+    - name: Restart Apache
+      service:
+        name: "{{ 'apache2' if ansible_os_family == 'Debian' else 'httpd' }}"
+        state: restarted

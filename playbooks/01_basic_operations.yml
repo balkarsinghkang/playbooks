@@ -1,0 +1,31 @@
+---
+- name: Basic Operations Playbook
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  tasks:
+    - name: Create a test file
+      file:
+        path: /tmp/ansible_test_file.txt
+        state: touch
+        mode: '0644'
+      
+    - name: Write to the test file
+      copy:
+        content: "This is a test file created by Ansible."
+        dest: /tmp/ansible_test_file.txt
+      
+    - name: Read the test file
+      command: cat /tmp/ansible_test_file.txt
+      register: file_content
+      changed_when: false
+      
+    - name: Display the file content
+      debug:
+        var: file_content.stdout
+      
+    - name: Remove the test file
+      file:
+        path: /tmp/ansible_test_file.txt
+        state: absent

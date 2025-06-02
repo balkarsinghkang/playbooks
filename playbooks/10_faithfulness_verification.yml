@@ -1,0 +1,144 @@
+---
+- name: Faithfulness Verification Playbook
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  vars:
+    test_dir: /tmp/ansible_faithfulness_test
+    ansible_direct_output_file: "{{ test_dir }}/ansible_direct_output.txt"
+    interpreter_output_file: "{{ test_dir }}/interpreter_output.txt"
+    comparison_result_file: "{{ test_dir }}/comparison_result.txt"
+    
+    # Test cases for faithfulness verification
+    test_cases:
+      - name: simple_command
+        command: "echo 'Hello, World!'"
+        expected_output: "Hello, World!"
+      
+      - name: file_creation
+        command: "touch {{ test_dir }}/test_file.txt"
+        expected_output: ""
+      
+      - name: file_content
+        command: "echo 'Test content' > {{ test_dir }}/content_file.txt"
+        expected_output: ""
+      
+      - name: read_file
+        command: "cat {{ test_dir }}/content_file.txt"
+        expected_output: "Test content"
+      
+      - name: command_with_error
+        command: "cat /nonexistent_file.txt"
+        expected_error: true
+  
+  tasks:
+    - name: Create test directory
+      file:
+        path: "{{ test_dir }}"
+        state: directory
+        mode: '0755'
+    
+    # Run test cases directly with Ansible
+    - name: Run test cases directly with Ansible
+      command: "{{ item.command }}"
+      register: ansible_result
+      ignore_errors: true
+      loop: "{{ test_cases }}"
+      
+      # Store the output for each test case
+    - name: Store Ansible direct output
+      copy:
+        content: |
+          Ansible Direct Output:
+          {% for result in ansible_result.results %}
+          Test: {{ test_cases[loop.index0].name }}
+          Command: {{ test_cases[loop.index0].command }}
+          Return Code: {{ result.rc }}
+          Stdout: {{ result.stdout }}
+          Stderr: {{ result.stderr }}
+          ---
+          {% endfor %}
+        dest: "{{ ansible_direct_output_file }}"
+    
+    # Simulate running test cases through the interpreter
+    - name: Simulate running test cases through the interpreter
+      command: "{{ item.command }}"
+      register: interpreter_result
+      ignore_errors: true
+      loop: "{{ test_cases }}"
+    
+    # Store the output for each test case
+    - name: Store interpreter output
+      copy:
+        content: |
+          Interpreter Output:
+          {% for result in interpreter_result.results %}
+          Test: {{ test_cases[loop.index0].name }}
+          Command: {{ test_cases[loop.index0].command }}
+          Return Code: {{ result.rc }}
+          Stdout: {{ result.stdout }}
+          Stderr: {{ result.stderr }}
+          ---
+          {% endfor %}
+        dest: "{{ interpreter_output_file }}"
+    
+    # Compare the outputs
+    - name: Compare outputs
+      set_fact:
+        comparison_results: []
+    
+    - name: Perform comparison for each test case
+      set_fact:
+        comparison_results: "{{ comparison_results + [{'test': test_cases[loop.index0].name, 'command': test_cases[loop.index0].command, 'ansible_rc': ansible_result.results[loop.index0].rc, 'interpreter_rc': interpreter_result.results[loop.index0].rc, 'ansible_stdout': ansible_result.results[loop.index0].stdout, 'interpreter_stdout': interpreter_result.results[loop.index0].stdout, 'ansible_stderr': ansible_result.results[loop.index0].stderr, 'interpreter_stderr': interpreter_result.results[loop.index0].stderr, 'status': 'FAITHFUL' if ansible_result.results[loop.index0].rc == interpreter_result.results[loop.index0].rc and ansible_result.results[loop.index0].stdout == interpreter_result.results[loop.index0].stdout and ansible_result.results[loop.index0].stderr == interpreter_result.results[loop.index0].stderr else 'UNFAITHFUL'}] }}"
+      loop: "{{ test_cases }}"
+    
+    # Store the comparison results
+    - name: Store comparison results
+      copy:
+        content: |
+          Faithfulness Verification Results:
+          {% for result in comparison_results %}
+          Test: {{ result.test }}
+          Command: {{ result.command }}
+          Status: {{ result.status }}
+          {% if result.status == 'UNFAITHFUL' %}
+          Differences:
+          {% if result.ansible_rc != result.interpreter_rc %}
+          - Return Code: Ansible ({{ result.ansible_rc }}) vs Interpreter ({{ result.interpreter_rc }})
+          {% endif %}
+          {% if result.ansible_stdout != result.interpreter_stdout %}
+          - Stdout: 
+            Ansible: {{ result.ansible_stdout }}
+            Interpreter: {{ result.interpreter_stdout }}
+          {% endif %}
+          {% if result.ansible_stderr != result.interpreter_stderr %}
+          - Stderr: 
+            Ansible: {{ result.ansible_stderr }}
+            Interpreter: {{ result.interpreter_stderr }}
+          {% endif %}
+          {% endif %}
+          ---
+          {% endfor %}
+          
+          Summary:
+          Total Tests: {{ comparison_results | length }}
+          Faithful: {{ comparison_results | selectattr('status', 'equalto', 'FAITHFUL') | list | length }}
+          Unfaithful: {{ comparison_results | selectattr('status', 'equalto', 'UNFAITHFUL') | list | length }}
+        dest: "{{ comparison_result_file }}"
+    
+    # Display the comparison results
+    - name: Read comparison results
+      command: cat "{{ comparison_result_file }}"
+      register: comparison_output
+      changed_when: false
+    
+    - name: Display comparison results
+      debug:
+        var: comparison_output.stdout
+    
+    # Clean up
+    - name: Clean up
+      file:
+        path: "{{ test_dir }}"
+        state: absent

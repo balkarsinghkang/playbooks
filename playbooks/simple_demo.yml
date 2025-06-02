@@ -1,0 +1,34 @@
+---
+- name: Simple Demo Playbook
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  tasks:
+    - name: Display system information
+      debug:
+        msg: "Running on {{ ansible_hostname }} with {{ ansible_distribution }} {{ ansible_distribution_version }}"
+    
+    - name: Create a test directory in /tmp
+      file:
+        path: /tmp/ansible_demo_test
+        state: directory
+        mode: '0755'
+    
+    - name: Create a test file
+      copy:
+        content: |
+          This is a test file created by ansible-interpreter demo
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          Host: {{ ansible_hostname }}
+        dest: /tmp/ansible_demo_test/demo_file.txt
+        mode: '0644'
+    
+    - name: Verify file was created
+      stat:
+        path: /tmp/ansible_demo_test/demo_file.txt
+      register: demo_file_stat
+    
+    - name: Display file information
+      debug:
+        msg: "Demo file created successfully at {{ demo_file_stat.stat.path }}, size: {{ demo_file_stat.stat.size }} bytes"
+      when: demo_file_stat.stat.exists

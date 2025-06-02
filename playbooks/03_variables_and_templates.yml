@@ -1,0 +1,65 @@
+---
+- name: Variables and Templates Playbook
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  vars:
+    test_message: "This is a test message from a variable."
+    test_list:
+      - item1
+      - item2
+      - item3
+    test_dict:
+      key1: value1
+      key2: value2
+      key3: value3
+  
+  tasks:
+    - name: Create a temporary directory
+      file:
+        path: /tmp/ansible_test_dir
+        state: directory
+        mode: '0755'
+      
+    - name: Create a template file
+      template:
+        src: "{{ playbook_dir }}/templates/test_template.j2"
+        dest: /tmp/ansible_test_dir/test_output.txt
+      vars:
+        template_var: "This is a template variable."
+      register: template_result
+      failed_when: false
+      
+    - name: Create template file manually if template module fails
+      copy:
+        content: |
+          Test Message: {{ test_message }}
+          
+          List Items:
+          {% for item in test_list %}
+          - {{ item }}
+          {% endfor %}
+          
+          Dictionary Items:
+          {% for key, value in test_dict.items() %}
+          {{ key }}: {{ value }}
+          {% endfor %}
+          
+          Template Variable: {{ template_var | default('Template variable not provided.') }}
+        dest: /tmp/ansible_test_dir/test_output.txt
+      when: template_result is failed
+      
+    - name: Read the output file
+      command: cat /tmp/ansible_test_dir/test_output.txt
+      register: file_content
+      changed_when: false
+      
+    - name: Display the file content
+      debug:
+        var: file_content.stdout
+      
+    - name: Clean up
+      file:
+        path: /tmp/ansible_test_dir
+        state: absent

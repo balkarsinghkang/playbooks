@@ -1,0 +1,181 @@
+---
+- name: Complex Data Structures Playbook
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  vars:
+    test_dir: /tmp/ansible_test_data
+    
+    # Simple variables
+    simple_string: "This is a simple string."
+    simple_number: 42
+    simple_boolean: true
+    
+    # Lists
+    simple_list:
+      - item1
+      - item2
+      - item3
+    
+    # Dictionaries
+    simple_dict:
+      key1: value1
+      key2: value2
+      key3: value3
+    
+    # Nested structures
+    nested_list:
+      - [1, 2, 3]
+      - [4, 5, 6]
+      - [7, 8, 9]
+    
+    nested_dict:
+      dict1:
+        key1: value1
+        key2: value2
+      dict2:
+        key3: value3
+        key4: value4
+    
+    complex_structure:
+      servers:
+        - name: web1
+          ip: 192.168.1.10
+          roles:
+            - web
+            - cache
+          config:
+            port: 80
+            max_connections: 1000
+        - name: web2
+          ip: 192.168.1.11
+          roles:
+            - web
+            - app
+          config:
+            port: 80
+            max_connections: 1000
+        - name: db1
+          ip: 192.168.1.20
+          roles:
+            - database
+          config:
+            port: 3306
+            max_connections: 500
+      
+      networks:
+        frontend:
+          subnet: 192.168.1.0/24
+          vlan: 10
+        backend:
+          subnet: 192.168.2.0/24
+          vlan: 20
+  
+  tasks:
+    - name: Create test directory
+      file:
+        path: "{{ test_dir }}"
+        state: directory
+        mode: '0755'
+    
+    # Working with simple variables
+    - name: Write simple variables to file
+      copy:
+        content: |
+          String: {{ simple_string }}
+          Number: {{ simple_number }}
+          Boolean: {{ simple_boolean }}
+        dest: "{{ test_dir }}/simple_vars.txt"
+    
+    # Working with lists
+    - name: Write list to file
+      copy:
+        content: |
+          List items:
+          {% for item in simple_list %}
+          - {{ item }}
+          {% endfor %}
+        dest: "{{ test_dir }}/list.txt"
+    
+    # Working with dictionaries
+    - name: Write dictionary to file
+      copy:
+        content: |
+          Dictionary items:
+          {% for key, value in simple_dict.items() %}
+          {{ key }}: {{ value }}
+          {% endfor %}
+        dest: "{{ test_dir }}/dict.txt"
+    
+    # Working with nested structures
+    - name: Write nested list to file
+      copy:
+        content: |
+          Nested list:
+          {% for sublist in nested_list %}
+          {{ sublist }}
+          {% endfor %}
+        dest: "{{ test_dir }}/nested_list.txt"
+    
+    - name: Write nested dictionary to file
+      copy:
+        content: |
+          Nested dictionary:
+          {% for dict_name, dict_content in nested_dict.items() %}
+          {{ dict_name }}:
+          {% for key, value in dict_content.items() %}
+            {{ key }}: {{ value }}
+          {% endfor %}
+          {% endfor %}
+        dest: "{{ test_dir }}/nested_dict.txt"
+    
+    # Working with complex structures
+    - name: Write server information to file
+      copy:
+        content: |
+          Server Information:
+          {% for server in complex_structure.servers %}
+          {{ server.name }} ({{ server.ip }}):
+            Roles: {{ server.roles | join(', ') }}
+            Port: {{ server.config.port }}
+            Max Connections: {{ server.config.max_connections }}
+          {% endfor %}
+        dest: "{{ test_dir }}/servers.txt"
+    
+    - name: Write network information to file
+      copy:
+        content: |
+          Network Information:
+          {% for network_name, network_info in complex_structure.networks.items() %}
+          {{ network_name }}:
+            Subnet: {{ network_info.subnet }}
+            VLAN: {{ network_info.vlan }}
+          {% endfor %}
+        dest: "{{ test_dir }}/networks.txt"
+    
+    # Display results
+    - name: List all files in test directory
+      command: find "{{ test_dir }}" -type f
+      register: file_list
+      changed_when: false
+    
+    - name: Display file list
+      debug:
+        var: file_list.stdout_lines
+    
+    # Read and display file contents
+    - name: Read server information
+      command: cat "{{ test_dir }}/servers.txt"
+      register: server_info
+      changed_when: false
+    
+    - name: Display server information
+      debug:
+        var: server_info.stdout
+    
+    # Clean up
+    - name: Clean up
+      file:
+        path: "{{ test_dir }}"
+        state: absent

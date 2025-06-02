@@ -1,0 +1,16 @@
+---
+- name: Imported Playbook
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  tasks:
+    - name: Imported playbook task 1
+      copy:
+        content: "This is imported playbook task 1."
+        dest: "{{ test_dir }}/imported_task1.txt"
+    
+    - name: Imported playbook task 2
+      copy:
+        content: "This is imported playbook task 2."
+        dest: "{{ test_dir }}/imported_task2.txt"

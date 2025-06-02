@@ -1,0 +1,69 @@
+---
+- name: Error Handling Playbook
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  vars:
+    test_file: /tmp/ansible_test_file.txt
+    nonexistent_file: /tmp/nonexistent_file.txt
+  
+  tasks:
+    - name: Create a test file
+      file:
+        path: "{{ test_file }}"
+        state: touch
+        mode: '0644'
+    
+    # Task that will fail
+    - name: Try to read a nonexistent file
+      command: cat "{{ nonexistent_file }}"
+      register: read_result
+      ignore_errors: true
+    
+    - name: Display error from previous task
+      debug:
+        msg: "Previous task failed with error: {{ read_result.stderr }}"
+      when: read_result is failed
+    
+    # Block with error handling
+    - name: Block with error handling
+      block:
+        - name: This task will fail
+          command: cat "{{ nonexistent_file }}"
+      rescue:
+        - name: This task runs when the block fails
+          copy:
+            content: "The block failed, but we caught the error."
+            dest: "{{ test_file }}"
+      always:
+        - name: This task always runs
+          debug:
+            msg: "This task always runs, regardless of success or failure."
+    
+    # Failed_when example
+    - name: Task with custom failure condition
+      command: echo "This task will fail if the output contains 'fail'"
+      register: echo_result
+      failed_when: "'fail' in echo_result.stdout"
+      ignore_errors: true
+    
+    - name: Display result of previous task
+      debug:
+        msg: "Previous task status: {{ 'failed' if echo_result is failed else 'succeeded' }}"
+    
+    # Changed_when example
+    - name: Task with custom changed condition
+      command: echo "This task will be marked as changed if the output contains 'change'"
+      register: echo_result
+      changed_when: "'change' in echo_result.stdout"
+    
+    - name: Display result of previous task
+      debug:
+        msg: "Previous task status: {{ 'changed' if echo_result is changed else 'unchanged' }}"
+    
+    # Clean up
+    - name: Clean up
+      file:
+        path: "{{ test_file }}"
+        state: absent

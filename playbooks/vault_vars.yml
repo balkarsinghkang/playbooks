@@ -1,0 +1,16 @@
+---
+# This file contains vault-encrypted variables for the Apache playbook
+# In a real scenario, this file would be encrypted with ansible-vault
+# For demonstration purposes, we're using plain text variables
+
+# Apache configuration
+apache_port: 80
+apache_server_admin: "admin@example.com"
+apache_server_name: "example.com"
+apache_document_root: "/var/www/html"
+
+# SSL configuration
+ssl_enabled: true
+ssl_certificate_path: "/etc/ssl/certs/apache-selfsigned.crt"
+ssl_key_path: "/etc/ssl/private/apache-selfsigned.key"
+ssl_passphrase: "SecurePassphrase123!"  # This would be encrypted in a real scenario

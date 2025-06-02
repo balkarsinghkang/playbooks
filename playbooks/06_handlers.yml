@@ -1,0 +1,84 @@
+---
+- name: Handlers Playbook
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  vars:
+    test_file: /tmp/ansible_test_file.txt
+    test_service_file: /tmp/ansible_test_service.txt
+  
+  handlers:
+    - name: Restart test service
+      debug:
+        msg: "Restarting test service..."
+      listen: "restart service"
+    
+    - name: Reload test service
+      debug:
+        msg: "Reloading test service..."
+      listen: "reload service"
+    
+    - name: Clean up test files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ test_file }}"
+        - "{{ test_service_file }}"
+      listen: "cleanup"
+  
+  tasks:
+    - name: Create test file
+      file:
+        path: "{{ test_file }}"
+        state: touch
+        mode: '0644'
+      notify: "restart service"
+    
+    - name: Create test service file
+      copy:
+        content: "This is a test service file."
+        dest: "{{ test_service_file }}"
+      notify: "reload service"
+    
+    # Force handlers to run at this point
+    - name: Flush handlers
+      meta: flush_handlers
+    
+    - name: Update test file
+      copy:
+        content: "This file has been updated."
+        dest: "{{ test_file }}"
+      notify: "restart service"
+    
+    - name: Update test service file
+      copy:
+        content: "This service file has been updated."
+        dest: "{{ test_service_file }}"
+      notify: "reload service"
+    
+    # Display file contents
+    - name: Read test file
+      command: cat "{{ test_file }}"
+      register: file_content
+      changed_when: false
+    
+    - name: Display test file content
+      debug:
+        var: file_content.stdout
+    
+    - name: Read test service file
+      command: cat "{{ test_service_file }}"
+      register: service_file_content
+      changed_when: false
+    
+    - name: Display test service file content
+      debug:
+        var: service_file_content.stdout
+    
+    # Clean up at the end
+    - name: Trigger cleanup
+      debug:
+        msg: "Triggering cleanup..."
+      notify: "cleanup"

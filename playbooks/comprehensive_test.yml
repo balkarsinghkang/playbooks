@@ -1,0 +1,96 @@
+---
+- name: Comprehensive test playbook
+  hosts: all
+  gather_facts: yes
+  become: "{{ become | default(false) }}"
+  vars:
+    test_dir: "{{ test_dir | default('/tmp/qa_test_dir') }}"
+    test_file: "{{ test_file | default('test.txt') }}"
+    test_content: "{{ test_content | default('Hello, world!') }}"
+    test_user: "{{ test_user | default('nobody') }}"
+    test_group: "{{ test_group | default('nobody') }}"
+
+  tasks:
+    - name: Create directory
+      file:
+        path: "{{ test_dir }}"
+        state: directory
+        mode: '0755'
+        owner: "{{ test_user }}"
+        group: "{{ test_group }}"
+      register: dir_creation
+
+    - name: Display directory creation result
+      debug:
+        var: dir_creation
+
+    - name: Create file
+      copy:
+        content: "{{ test_content }}"
+        dest: "{{ test_dir }}/{{ test_file }}"
+        mode: '0644'
+        owner: "{{ test_user }}"
+        group: "{{ test_group }}"
+      register: file_creation
+
+    - name: Display file creation result
+      debug:
+        var: file_creation
+
+    - name: Read file
+      command: cat "{{ test_dir }}/{{ test_file }}"
+      register: file_content
+      changed_when: false
+
+    - name: Display file content
+      debug:
+        var: file_content.stdout
+
+    - name: Check file permissions
+      stat:
+        path: "{{ test_dir }}/{{ test_file }}"
+      register: file_stat
+
+    - name: Display file permissions
+      debug:
+        var: file_stat.stat.mode
+
+    - name: Modify file
+      lineinfile:
+        path: "{{ test_dir }}/{{ test_file }}"
+        line: "Modified: {{ ansible_date_time.iso8601 }}"
+        state: present
+      register: file_modification
+
+    - name: Display file modification result
+      debug:
+        var: file_modification
+
+    - name: Read modified file
+      command: cat "{{ test_dir }}/{{ test_file }}"
+      register: modified_file_content
+      changed_when: false
+
+    - name: Display modified file content
+      debug:
+        var: modified_file_content.stdout
+
+    - name: Remove file
+      file:
+        path: "{{ test_dir }}/{{ test_file }}"
+        state: absent
+      register: file_removal
+
+    - name: Display file removal result
+      debug:
+        var: file_removal
+
+    - name: Remove directory
+      file:
+        path: "{{ test_dir }}"
+        state: absent
+      register: dir_removal
+
+    - name: Display directory removal result
+      debug:
+        var: dir_removal

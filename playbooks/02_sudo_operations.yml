@@ -1,0 +1,32 @@
+---
+- name: Sudo Operations Playbook
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: yes
+  
+  tasks:
+    - name: Create a test file in /etc
+      file:
+        path: /etc/ansible_test_file.txt
+        state: touch
+        mode: '0644'
+      
+    - name: Write to the test file
+      copy:
+        content: "This file was created with sudo privileges."
+        dest: /etc/ansible_test_file.txt
+      
+    - name: Read the test file
+      command: cat /etc/ansible_test_file.txt
+      register: file_content
+      changed_when: false
+      
+    - name: Display the file content
+      debug:
+        var: file_content.stdout
+      
+    - name: Remove the test file
+      file:
+        path: /etc/ansible_test_file.txt
+        state: absent

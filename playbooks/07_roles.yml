@@ -1,0 +1,113 @@
+---
+- name: Roles Playbook
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  # This playbook demonstrates the concept of roles
+  # In a real scenario, you would have a roles directory with proper structure
+  # For this test, we'll simulate role behavior
+  
+  vars:
+    test_dir: /tmp/ansible_test_roles
+    common_vars:
+      message: "This is a message from common vars."
+    web_vars:
+      port: 8080
+      document_root: "/var/www/html"
+    db_vars:
+      port: 3306
+      data_dir: "/var/lib/mysql"
+  
+  tasks:
+    - name: Create test directory
+      file:
+        path: "{{ test_dir }}"
+        state: directory
+        mode: '0755'
+    
+    # Simulate common role tasks
+    - name: Common role - Create common directory
+      file:
+        path: "{{ test_dir }}/common"
+        state: directory
+        mode: '0755'
+    
+    - name: Common role - Create common file
+      copy:
+        content: "{{ common_vars.message }}"
+        dest: "{{ test_dir }}/common/common.txt"
+    
+    # Simulate web role tasks
+    - name: Web role - Create web directory
+      file:
+        path: "{{ test_dir }}/web"
+        state: directory
+        mode: '0755'
+    
+    - name: Web role - Create web config
+      copy:
+        content: |
+          server {
+            listen {{ web_vars.port }};
+            root {{ web_vars.document_root }};
+          }
+        dest: "{{ test_dir }}/web/nginx.conf"
+    
+    # Simulate db role tasks
+    - name: DB role - Create db directory
+      file:
+        path: "{{ test_dir }}/db"
+        state: directory
+        mode: '0755'
+    
+    - name: DB role - Create db config
+      copy:
+        content: |
+          [mysqld]
+          port={{ db_vars.port }}
+          datadir={{ db_vars.data_dir }}
+        dest: "{{ test_dir }}/db/my.cnf"
+    
+    # Display role outputs
+    - name: List all files in test directory
+      command: find "{{ test_dir }}" -type f
+      register: file_list
+      changed_when: false
+    
+    - name: Display file list
+      debug:
+        var: file_list.stdout_lines
+    
+    - name: Read common file
+      command: cat "{{ test_dir }}/common/common.txt"
+      register: common_content
+      changed_when: false
+    
+    - name: Display common file content
+      debug:
+        var: common_content.stdout
+    
+    - name: Read web config
+      command: cat "{{ test_dir }}/web/nginx.conf"
+      register: web_content
+      changed_when: false
+    
+    - name: Display web config content
+      debug:
+        var: web_content.stdout
+    
+    - name: Read db config
+      command: cat "{{ test_dir }}/db/my.cnf"
+      register: db_content
+      changed_when: false
+    
+    - name: Display db config content
+      debug:
+        var: db_content.stdout
+    
+    # Clean up
+    - name: Clean up
+      file:
+        path: "{{ test_dir }}"
+        state: absent
