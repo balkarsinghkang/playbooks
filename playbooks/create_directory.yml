@@ -1,6 +1,6 @@
 ---
 - name: Create directory playbook
-  hosts: all
+  hosts: localhost
   gather_facts: yes
   tasks:
     - name: Create directory
