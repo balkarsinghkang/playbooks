@@ -25,7 +25,7 @@
       debug:
         var: file_content.stdout
       
-    - name: Remove the test file
-      file:
-        path: /tmp/ansible_test_file.txt
-        state: absent
+#    - name: Remove the test file
+ #     file:
+  #      path: /tmp/ansible_test_file.txt
+   #     state: absent
